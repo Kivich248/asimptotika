@@ -11,6 +11,19 @@
 // мы приняли решение
 using namespace std;
 
+string to_csv_number(double value) {
+    // Преобразуем double в строку с фиксированной точностью,
+    // чтобы избежать научной нотации и лишних нулей
+    ostringstream oss;
+    oss << fixed << setprecision(6) << value;
+    string s = oss.str();
+    // Удаляем завершающие нули и точку, если она последняя
+    while (s.size() > 1 && s.back() == '0') s.pop_back();
+    if (s.back() == '.') s.pop_back();
+    // Заменяем десятичную точку на запятую
+    replace(s.begin(), s.end(), '.', ',');
+    return s;
+}
 
 // интерфейс для построения чего-то полезного
 template<typename T>
@@ -458,9 +471,8 @@ vector<vector<double>> generateRandomMatrix(int n, int m, double min_val, double
 int main()
 {
     // csw текстовый формат таблиц, который удобно обрабатывать
-    ofstream csv("lab3_results.csv");
+    ofstream csv("lab3_results.csv", ios::binary);
     csv << "\xEF\xBB\xBF";
-
     // Заголовки столбцов
     csv << "Размер N;"
         << "Построение 1D Префиксных Сумм;Запрос 1D Префиксных Сумм;"
@@ -506,11 +518,12 @@ int main()
                 total_pref1d_build += pref1d.getBuildOps();
                 for (int q = 0; q < num_queries_per_array; q++)
                 {
+                    int64_t before = pref1d.getQueryOps();
                     int l = rand() % n;
                     int r = rand() % n;
                     if (l > r) swap(l, r);
                     pref1d.query(l, r);
-                    total_pref1d_query += pref1d.getQueryOps();
+                    total_pref1d_query += pref1d.getQueryOps() - before;
                 }
 
                 vector<vector<int>> mat = generateRandomMatrix(n, n, -1000, 1000);
@@ -519,12 +532,13 @@ int main()
                 total_pref2d_build += pref2d.getBuildOps();
                 for (int q = 0; q < num_queries_per_array; q++)
                 {
+                    int64_t before = pref2d.getQueryOps();
                     int x1 = rand() % n, y1 = rand() % n;
                     int x2 = rand() % n, y2 = rand() % n;
                     if (x1 > x2) swap(x1, x2);
                     if (y1 > y2) swap(y1, y2);
                     pref2d.query2D(x1, y1, x2, y2);
-                    total_pref2d_query += pref2d.getQueryOps();
+                    total_pref2d_query += pref2d.getQueryOps() - before;
                 }
 
                 AllRangesRMQ<int> rmq_all;
@@ -532,11 +546,12 @@ int main()
                 total_rmq_all_build += rmq_all.getBuildOps();
                 for (int q = 0; q < num_queries_per_array; q++)
                 {
+                    int64_t before = rmq_all.getQueryOps();
                     int l = rand() % n;
                     int r = rand() % n;
                     if (l > r) swap(l, r);
                     rmq_all.query(l, r);
-                    total_rmq_all_query += rmq_all.getQueryOps();
+                    total_rmq_all_query += rmq_all.getQueryOps() - before;
                 }
 
                 SqrtDecomposition<int, decltype(sum_op_int)> sqrt_rsq(sum_op_int, 0);
@@ -544,11 +559,12 @@ int main()
                 total_sqrt_rsq_build += sqrt_rsq.getBuildOps();
                 for (int q = 0; q < num_queries_per_array; q++)
                 {
+                    int64_t before = sqrt_rsq.getQueryOps();
                     int l = rand() % n;
                     int r = rand() % n;
                     if (l > r) swap(l, r);
                     sqrt_rsq.query(l, r);
-                    total_sqrt_rsq_query += sqrt_rsq.getQueryOps();
+                    total_sqrt_rsq_query += sqrt_rsq.getQueryOps() - before;
                 }
 
                 SqrtDecomposition<int, decltype(min_op_int)> sqrt_rmq(min_op_int, INF_INT);
@@ -556,11 +572,12 @@ int main()
                 total_sqrt_rmq_build += sqrt_rmq.getBuildOps();
                 for (int q = 0; q < num_queries_per_array; q++)
                 {
+                    int64_t before = sqrt_rmq.getQueryOps();
                     int l = rand() % n;
                     int r = rand() % n;
                     if (l > r) swap(l, r);
                     sqrt_rmq.query(l, r);
-                    total_sqrt_rmq_query += sqrt_rmq.getQueryOps();
+                    total_sqrt_rmq_query += sqrt_rmq.getQueryOps() - before;
                 }
 
                 SegmentTree<int, decltype(sum_op_int)> seg_rsq(sum_op_int, 0);
@@ -568,18 +585,20 @@ int main()
                 total_seg_build += seg_rsq.getBuildOps();
                 for (int q = 0; q < num_queries_per_array; q++)
                 {
+                    int64_t before = seg_rsq.getQueryOps();
                     int l = rand() % n;
                     int r = rand() % n;
                     if (l > r) swap(l, r);
                     seg_rsq.query(l, r);
-                    total_seg_query += seg_rsq.getQueryOps();
+                    total_seg_query += seg_rsq.getQueryOps() - before;
                 }
                 for (int q = 0; q < num_queries_per_array; q++)
                 {
+                    int64_t before = seg_rsq.getUpdateOps();
                     int idx = rand() % n;
                     int val = rand() % 2000 - 1000;
                     seg_rsq.update(idx, val);
-                    total_seg_update += seg_rsq.getUpdateOps();
+                    total_seg_update += seg_rsq.getUpdateOps() - before;
                 }
 
             } else {
@@ -589,11 +608,12 @@ int main()
                 pref1d.build(arr);
                 total_pref1d_build += pref1d.getBuildOps();
                 for (int q = 0; q < num_queries_per_array; q++) {
+                    int64_t before = pref1d.getQueryOps();
                     int l = rand() % n;
                     int r = rand() % n;
                     if (l > r) swap(l, r);
                     pref1d.query(l, r);
-                    total_pref1d_query += pref1d.getQueryOps();
+                    total_pref1d_query += pref1d.getQueryOps() - before;
                 }
 
                 // 2D Prefix Sum
@@ -602,62 +622,68 @@ int main()
                 pref2d.build2D(mat);
                 total_pref2d_build += pref2d.getBuildOps();
                 for (int q = 0; q < num_queries_per_array; q++) {
+                    int64_t before = pref2d.getQueryOps();
                     int x1 = rand() % n, y1 = rand() % n;
                     int x2 = rand() % n, y2 = rand() % n;
                     if (x1 > x2) swap(x1, x2);
                     if (y1 > y2) swap(y1, y2);
                     pref2d.query2D(x1, y1, x2, y2);
-                    total_pref2d_query += pref2d.getQueryOps();
+                    total_pref2d_query += pref2d.getQueryOps() - before;
                 }
 
                 AllRangesRMQ<double> rmq_all;
                 rmq_all.build(arr);
                 total_rmq_all_build += rmq_all.getBuildOps();
                 for (int q = 0; q < num_queries_per_array; q++) {
+                    int64_t before = rmq_all.getQueryOps();
                     int l = rand() % n;
                     int r = rand() % n;
                     if (l > r) swap(l, r);
                     rmq_all.query(l, r);
-                    total_rmq_all_query += rmq_all.getQueryOps();
+                    total_rmq_all_query += rmq_all.getQueryOps() - before;
                 }
 
                 SqrtDecomposition<double, decltype(sum_op_double)> sqrt_rsq(sum_op_double, 0.0);
                 sqrt_rsq.build(arr);
                 total_sqrt_rsq_build += sqrt_rsq.getBuildOps();
                 for (int q = 0; q < num_queries_per_array; q++) {
+                    int64_t before = sqrt_rsq.getQueryOps();
                     int l = rand() % n;
                     int r = rand() % n;
                     if (l > r) swap(l, r);
                     sqrt_rsq.query(l, r);
-                    total_sqrt_rsq_query += sqrt_rsq.getQueryOps();
+                    total_sqrt_rsq_query += sqrt_rsq.getQueryOps() - before;
                 }
 
                 SqrtDecomposition<double, decltype(min_op_double)> sqrt_rmq(min_op_double, INF_DOUBLE);
                 sqrt_rmq.build(arr);
                 total_sqrt_rmq_build += sqrt_rmq.getBuildOps();
                 for (int q = 0; q < num_queries_per_array; q++) {
+                    int64_t before = sqrt_rmq.getQueryOps();
                     int l = rand() % n;
                     int r = rand() % n;
                     if (l > r) swap(l, r);
                     sqrt_rmq.query(l, r);
-                    total_sqrt_rmq_query += sqrt_rmq.getQueryOps();
+                    total_sqrt_rmq_query += sqrt_rmq.getQueryOps() - before;
                 }
 
                 SegmentTree<double, decltype(sum_op_double)> seg_rsq(sum_op_double, 0.0);
                 seg_rsq.build(arr);
                 total_seg_build += seg_rsq.getBuildOps();
                 for (int q = 0; q < num_queries_per_array; q++) {
+                    int64_t before = seg_rsq.getQueryOps();
                     int l = rand() % n;
                     int r = rand() % n;
                     if (l > r) swap(l, r);
                     seg_rsq.query(l, r);
-                    total_seg_query += seg_rsq.getQueryOps();
+                    total_seg_query += seg_rsq.getQueryOps() - before;
                 }
                 for (int q = 0; q < num_queries_per_array; q++) {
+                    int64_t before = seg_rsq.getUpdateOps();
                     int idx = rand() % n;
                     double val = (rand() % 2000 - 1000) / 10.0;
                     seg_rsq.update(idx, val);
-                    total_seg_update += seg_rsq.getUpdateOps();
+                    total_seg_update += seg_rsq.getUpdateOps() - before;
                 }
             }
         }
@@ -665,12 +691,19 @@ int main()
         double total_queries = num_arrays * num_queries_per_array;
 
         csv << n << ";"
-            << (double)total_pref1d_build / num_arrays << ";" << (double)total_pref1d_query / total_queries << ";"
-            << (double)total_pref2d_build / num_arrays << ";" << (double)total_pref2d_query / total_queries << ";"
-            << (double)total_rmq_all_build / num_arrays << ";" << (double)total_rmq_all_query / total_queries << ";"
-            << (double)total_sqrt_rsq_build / num_arrays << ";" << (double)total_sqrt_rsq_query / total_queries << ";"
-            << (double)total_sqrt_rmq_build / num_arrays << ";" << (double)total_sqrt_rmq_query / total_queries << ";"
-            << (double)total_seg_build / num_arrays << ";" << (double)total_seg_query / total_queries << ";" << (double)total_seg_update / total_queries << "\n";
+        << to_csv_number((double)total_pref1d_build / num_arrays) << ";"
+        << to_csv_number((double)total_pref1d_query / total_queries) << ";"
+        << to_csv_number((double)total_pref2d_build / num_arrays) << ";"
+        << to_csv_number((double)total_pref2d_query / total_queries) << ";"
+        << to_csv_number((double)total_rmq_all_build / num_arrays) << ";"
+        << to_csv_number((double)total_rmq_all_query / total_queries) << ";"
+        << to_csv_number((double)total_sqrt_rsq_build / num_arrays) << ";"
+        << to_csv_number((double)total_sqrt_rsq_query / total_queries) << ";"
+        << to_csv_number((double)total_sqrt_rmq_build / num_arrays) << ";"
+        << to_csv_number((double)total_sqrt_rmq_query / total_queries) << ";"
+        << to_csv_number((double)total_seg_build / num_arrays) << ";"
+        << to_csv_number((double)total_seg_query / total_queries) << ";"
+        << to_csv_number((double)total_seg_update / total_queries) << "\n";
     }
 
     // Добавляем строку с ожидаемой асимптотикой
